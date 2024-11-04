@@ -2,20 +2,31 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ./../../modules/core
     ];
 
   # Use the systemd-boot EFI boot loader.
-  boot.loader.grub.enable = true;
-  boot.loader.grub.device = "nodev";
-  boot.loader.grub.useOSProber = true;
-  boot.loader.grub.efiSupport = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader = {
+
+    efi = {
+      canTouchEfiVariables = true;
+    };
+
+    grub = {
+      enable = true;
+      # version = 2;
+      devices = ["nodev"];
+      useOSProber = true;
+      efiSupport = true;
+      configurationLimit = 10;
+    };
+  };
 
   networking.hostName = "Inlinkcraft"; # Define your hostname.
   # Pick only one of the below networking options.
@@ -23,30 +34,61 @@
   # networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
 
   # Set your time zone.
-  # time.timeZone = "Europe/Amsterdam";
+  time.timeZone = "Canada/Eastern";
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
   # Select internationalisation properties.
-  # i18n.defaultLocale = "en_US.UTF-8";
-  # console = {
-  #   font = "Lat2-Terminus16";
-  #   keyMap = "us";
-  #   useXkbConfig = true; # use xkb.options in tty.
-  # };
-
-  # Enable the X11 windowing system.
-  services.xserver = {
-     enable = true;
-     displayManager.gdm.enable = true;
-     desktopManager.gnome.enable = true;
+  i18n.defaultLocale = "en_US.UTF-8";
+  console = {
+    font = "Lat2-Terminus16";
+    keyMap = "ca";
+  #  useXkbConfig = true; # use xkb.options in tty.
   };
 
-  # Configure keymap in X11
-  # services.xserver.xkb.layout = "us";
-  # services.xserver.xkb.options = "eurosign:e,caps:escape";
+  # Enable the X11 windowing system.
+  services = {
+
+     displayManager.sddm = {
+       enable = true;
+       wayland.enable = true;
+     };
+
+     xserver = {
+
+       enable = true;
+
+       #displayManager = {
+       #  lightdm.enable = true;
+       #  defaultSession = "xfce";
+       #};
+
+       desktopManager = {
+         xfce.enable = true;
+       };
+
+       #windowManager = {
+       #  bspwm.enable = true;
+       #};
+
+       xkb.layout = "ca";
+    };
+  };
+
+  programs.hyprland = {
+    enable = true;
+    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+    portalPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+  };
+
+  programs.thunar.enable = true;
+
+  programs.neovim = {
+    enable = true;
+    defaultEditor = true;
+  };
 
   # Enable CUPS to print documents.
   # services.printing.enable = true;
@@ -65,7 +107,7 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.inlinkcraft = {
     isNormalUser = true;
-    extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [ "wheel" "video" "audio" ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [
       firefox
       tree
@@ -74,10 +116,12 @@
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
+  nixpkgs.config.allowUnfree = true;
   environment.systemPackages = with pkgs; [
-    vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+    #vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     wget
     git
+    libnotify
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
